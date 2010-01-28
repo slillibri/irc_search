@@ -1,16 +1,14 @@
 #!/usr/bin/env ruby
 
 require 'rubygems'
-require 'nokogiri'
-require 'uri'
 require 'rsolr'
 require 'getoptlong'
-require 'pp'
 
 opts = GetoptLong.new(
   ['--channel', '-c', GetoptLong::REQUIRED_ARGUMENT],
   ['--query', '-q', GetoptLong::REQUIRED_ARGUMENT],
-  ['--rows', '-r', GetoptLong::REQUIRED_ARGUMENT])
+  ['--rows', '-r', GetoptLong::REQUIRED_ARGUMENT],
+  ['--startDate', '-s', GetoptLong::REQUIRED_ARGUMENT])
   
 conf = {:rows => 10}
 begin
@@ -22,6 +20,8 @@ begin
       conf[:query] = arg
     when '--rows'
       conf[:rows] = arg
+    when '--startDate'
+      conf[:start] = arg
     end
   end
 rescue Exception => e
@@ -29,18 +29,26 @@ rescue Exception => e
 end
 
 ##Build search query
+queryItems = []
 if (conf[:channel])
-  searchQuery =  "channel:#{conf[:channel]} AND "
+  queryItems.push("channel:#{conf[:channel]}")
 end
 if (conf[:query])
-  searchQuery = "#{searchQuery}(#{conf[:query]})"
+  queryItems.push("#{conf[:query]}")
+end
+if (conf[:start])
+  date = DateTime.parse("#{conf[:start]}T00:00:00-7:00").new_offset
+  dateString = date.to_s.gsub(/\+00:00/,'Z')
+  queryItems.push("received:[#{dateString} TO *]")
 end
 
+query = queryItems.join(' AND ')
 ##Query the local solr server
+
 solr = RSolr.connect(:url => 'http://localhost:8080/solr')
-results = solr.select(:q => searchQuery, :rows => conf[:rows], :sort => "received asc")
+results = solr.select(:q => query, :rows => conf[:rows], :sort => "received asc")
 
 results['response']['docs'].each do |res|
-  date = DateTime.parse(res['received']).new_offset(Date.time_to_day_fraction(-7,0,0))
-  puts "\033[1m#{res['sender']}\033[0m on #{date.strftime('%Y-%m-%d %H:%M:%S')} said \033[1m#{res['message']}\033[0m in #{res['channel']}"
+  received = DateTime.parse(res['received']).new_offset(Date.time_to_day_fraction(-7,0,0))
+  puts "\033[1m#{res['sender']}\033[0m on #{received.strftime('%Y-%m-%d %H:%M:%S')} said \033[1m#{res['message']}\033[0m in #{res['channel']}"
 end
