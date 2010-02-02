@@ -1,25 +1,22 @@
 #!/usr/bin/env ruby
 
 require 'rubygems'
-require 'sanitize'
 require 'nokogiri'
-require 'net/http'
-require 'uri'
-require 'getoptlong'
+require 'getopt/long'
 require 'uuid'
 require 'rsolr'
 
-opts = GetoptLong.new(
-  ['-f', GetoptLong::REQUIRED_ARGUMENT],
-  ['-h', GetoptLong::REQUIRED_ARGUMENT]
+opts = Getopt::Long.getopts(
+  ['-f', Getopt::REQUIRED],
+  ['-h', Getopt::REQUIRED]
 )
 
 conf = {}
 opts.each do |opt, arg|
   case opt
-  when '-f'
+  when 'f'
     conf[:file] = arg
-  when '-h'
+  when 'h'
     conf[:host] = arg
   end
 end

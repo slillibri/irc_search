@@ -2,25 +2,25 @@
 
 require 'rubygems'
 require 'rsolr'
-require 'getoptlong'
+require 'getopt/long'
 
-opts = GetoptLong.new(
-  ['--channel', '-c', GetoptLong::REQUIRED_ARGUMENT],
-  ['--query', '-q', GetoptLong::REQUIRED_ARGUMENT],
-  ['--rows', '-r', GetoptLong::REQUIRED_ARGUMENT],
-  ['--startDate', '-s', GetoptLong::REQUIRED_ARGUMENT])
+opts = Getopt::Long.getopts(
+  ['--channel', '-c', Getopt::REQUIRED],
+  ['--query', '-q', Getopt::REQUIRED],
+  ['--rows', '-r', Getopt::REQUIRED],
+  ['--startDate', '-s', Getopt::REQUIRED])
   
 conf = {:rows => 10}
 begin
   opts.each do |opt,arg|
     case opt
-    when '--channel'
+    when 'channel'
       conf[:channel] = arg
-    when '--query'
+    when 'query'
       conf[:query] = arg
-    when '--rows'
+    when 'rows'
       conf[:rows] = arg
-    when '--startDate'
+    when 'startDate'
       conf[:start] = arg
     end
   end
@@ -43,8 +43,8 @@ if (conf[:start])
 end
 
 query = queryItems.join(' AND ')
-##Query the local solr server
 
+##Query the local solr server
 solr = RSolr.connect(:url => 'http://localhost:8080/solr')
 results = solr.select(:q => query, :rows => conf[:rows], :sort => "received asc")
 
