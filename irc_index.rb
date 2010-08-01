@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'rubygems'
+require 'sanitize'
 require 'nokogiri'
 require 'getopt/long'
 require 'uuid'
@@ -26,6 +27,8 @@ unless conf.keys.size == 2
   exit()
 end
 
+rsolr = RSolr.connect(:url => 'http://localhost:8080/solr')
+
 document = Nokogiri::XML(File.read(conf[:file]))
 uuid = UUID.new
 channel = conf[:file].match(/^(.*)\/(.*)?\s/)[2].gsub(/#/,'')
@@ -46,24 +49,10 @@ envelopes.each do |envelope|
     utc = date.new_offset(Date.time_to_day_fraction(-7,0,0))
     
     message = message.children.text
-    puts Sanitize.clean(message)
-    ## Create a new document to post to Solr
-    builder = Nokogiri::XML::Builder.new do |xml|
-      xml.add {
-        xml.doc_ {
-          xml.field(:name => 'uuid') { xml.text uniqueid }
-          xml.field(:name => 'sender') { xml.text sender }
-          xml.field(:name => 'received') { xml.text "#{utc}Z" }
-          xml.field(:name => 'message') { xml.text Sanitize.clean(message) }
-          xml.field(:name => 'channel') { xml.text channel }
-        }
-      }
-    end
-    File.open('/tmp/update.xml', 'w') {|f| f.write(builder.to_xml.gsub(/\n/,''))}
-    
-    ## Post the new document to Solr host conf[:host]
-    `curl -s #{conf[:host]} --data-binary @/tmp/update.xml -H 'Content-type:text/xml; charset=utf-8'`    
+    #Add a new document for the message.
+    rsolr.add(:uuid => uniqueid, :sender => sender, :received => "#{utc}Z", 
+              :message => Sanitize.clean(message), :channel => channel)
   end
 end
 
-`curl -s #{conf[:host]} --data-binary '<commit/>' -H 'Content-type:text/xml; charset=utf-8'`
+rsolr.commit()
