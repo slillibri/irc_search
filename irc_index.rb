@@ -56,3 +56,5 @@ envelopes.each do |envelope|
 end
 
 rsolr.commit()
+
+puts conf[:file]
