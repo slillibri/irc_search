@@ -25,6 +25,20 @@ begin
     end
   end
 rescue Exception => e
+  usage()
+  exit
+end
+
+def usage
+  puts "Usage: search_irc --channel='<channel>'"
+  puts "\tOptional arguments"
+  puts "\t\t --query='<search terms>'"
+  puts "\t\t --rows='<number of rows returned>'"
+  puts "\t\t --startDate='<start searching at date>'"
+end
+
+if conf[:channel].nil?
+  usage()
   exit
 end
 
@@ -45,7 +59,7 @@ end
 query = queryItems.join(' AND ')
 
 ##Query the local solr server
-solr = RSolr.connect(:url => 'http://localhost:8080/solr')
+solr = RSolr.connect(:url => 'http://localhost:8080/solr/irc')
 results = solr.select(:q => query, :rows => conf[:rows], :sort => "received asc")
 
 results['response']['docs'].each do |res|
